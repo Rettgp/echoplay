@@ -1,0 +1,137 @@
+<template>
+    <div id="wrapper">
+        <now-playing-card
+            ref="nowPlaying"
+            :image="playing_image"
+            :song="playing_song"
+            :artist="playing_artist"
+            :duration="playing_duration"
+        ></now-playing-card>
+        <button v-on:click="ToggleRecord" type="button" class="btn btn-success btn-circle btn-xl">
+            <font-awesome-icon icon="microphone" size="3x" />
+        </button>
+        <recorded-list ref="recorded_list" id="recordedList"></recorded-list>
+        <iframe src="https://open.spotify.com/">
+        </iframe>
+    </div>
+</template>
+
+<script>
+import { BrowserView } from 'electron'
+import NowPlayingCard from "./MainView/NowPlayingCard";
+import RecordedList from "./MainView/RecordedList";
+import OAuth from "oauth/OAuth";
+var SpotifyWebApi = require("spotify-web-api-node");
+var portAudio = require("naudiodon");
+const Fs = require("fs");
+var spotifyApi = new SpotifyWebApi();
+
+let access_token = null;
+let AudioIo = null;
+
+export default {
+    name: "main-view",
+    components: { NowPlayingCard, RecordedList },
+    data() {
+        return {
+            playing_image:
+                "https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png",
+            playing_song: "Song",
+            playing_artist: "Artist",
+            recording: false
+        };
+    },
+    methods: {
+        open(link) {
+            this.$electron.shell.openExternal(link);
+        },
+        UpdateSongData() {
+            if (access_token !== null) {
+                spotifyApi.getMyCurrentPlaybackState({}).then(
+                    data => {
+                        // Output items
+                        if (data.body.item !== undefined) {
+                            this.playing_image =
+                                data.body.item.album.images[1].url;
+                            this.playing_song = data.body.item.name;
+                            this.playing_artist =
+                                data.body.item.artists[0].name;
+                            this.playing_duration = data.body.item.duration_ms;
+                            this.$refs.nowPlaying.UpdateProgress(
+                                data.body.progress_ms
+                            );
+                        }
+                    },
+                    function(err) {
+                        console.log("Something went wrong!", err);
+                    }
+                );
+            }
+        },
+        ToggleRecord() {
+            this.recording = !this.recording;
+            if (this.recording) {
+                AudioIo = new portAudio.AudioIO({
+                    inOptions: {
+                        channelCount: 2,
+                        sampleFormat: portAudio.SampleFormat16Bit,
+                        sampleRate: 44100,
+                        deviceId: -1 // Use -1 or omit the deviceId to select the default device
+                    }
+                });
+                // Create a write stream to write out to a raw audio file
+                let AudioWriteStream = Fs.createWriteStream("rawAudio.raw");
+                AudioIo.pipe(AudioWriteStream);
+                AudioIo.start();
+
+                this.$electron.ipcRenderer.send("spotify-pauseplay");
+                this.$refs.recorded_list.AddSong(this.playing_artist, this.playing_song);
+            } else {
+                this.$electron.ipcRenderer.send("spotify-pauseplay");
+                AudioIo.quit();
+            }
+        }
+    },
+    mounted: function() {
+        this.$electron.ipcRenderer.on("new_access_token", (event, token) => {
+            access_token = token;
+            spotifyApi.setAccessToken(access_token);
+        });
+        setInterval(this.UpdateSongData, 1000);
+    },
+    beforeDestroy: function() {
+        AudioIo.quit();
+    }
+};
+</script>
+
+<style>
+@import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro");
+
+#wrapper {
+    background: radial-gradient(
+        ellipse at top left,
+        rgba(255, 255, 255, 1) 40%,
+        rgba(229, 229, 229, 0.9) 100%
+    );
+    height: 100%;
+    width: 100%;
+}
+
+#recordedList {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  width: 8em;
+  margin-top: -2.5em;
+}
+
+.btn-circle.btn-xl {
+    width: 70px;
+    height: 70px;
+    padding: 10px 16px;
+    border-radius: 35px;
+    font-size: 12px;
+    text-align: center;
+}
+</style>
