@@ -56,6 +56,12 @@ function createWindow()
 
 function createSpotifyWindow()
 {
+    // EXPERIMENTAL
+    // let view = new BrowserView();
+    // mainWindow.addBrowserView(view)
+    // view.setBounds({ x: 0, y: 0, width: 300, height: 300 })
+    // view.webContents.loadURL("https://open.spotify.com/")
+
     spotifyWindow = new BrowserWindow({
         webPreferences: {
             plugins: true
