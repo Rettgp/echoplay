@@ -50,9 +50,10 @@
             "icon": "build/icons"
         },
         "electronDownload": {
+            "version": "7.1.2-wvvmp",
             "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
         },
-        "electronVersion": "7.1.2-wvvmp"
+        "electronVersion": "7.1.2"
     },
     "dependencies": {
         "@fortawesome/fontawesome-svg-core": "^1.2.26",
