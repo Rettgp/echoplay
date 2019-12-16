@@ -11,7 +11,6 @@ let s_access_tokens = null;
 
 export default class OAuth
 {
-    static s_access_tokens = null;
     static Authorize(browser, return_uri)
     {
         REDIRECT_URI = return_uri + "/";
@@ -52,6 +51,13 @@ export default class OAuth
             {
                 throw new Error('Auth window was closed by user')
             })
+
+            browser.webContents.on("did-redirect-navigation", (event, url) => {
+                if (url.includes(REDIRECT_URI))
+                {
+                    handleNavigation(url)
+                }
+            });
 
             browser.webContents.on('will-navigate', (event, url) =>
             {

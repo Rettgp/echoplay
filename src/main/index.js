@@ -15,6 +15,7 @@ let spotifyWindow = null;
 const winURL = process.env.NODE_ENV === 'development'
     ? `http://localhost:9080`
     : `file://${__dirname}/index.html`
+const redirectURL = `http://localhost:9080`;
 
 function createWindow()
 {
@@ -23,7 +24,6 @@ function createWindow()
      */
     mainWindow = new BrowserWindow({
         webPreferences: {
-            plugins: true,
             nodeIntegration: true
         },
         height: 563,
@@ -37,12 +37,13 @@ function createWindow()
         mainWindow = null
     })
 
-    OAuth.Authorize(mainWindow, winURL).then(code =>
+    OAuth.Authorize(mainWindow, redirectURL).then(code =>
     {
         OAuth.FetchAccessTokens(code).then(tokens =>
         {
             console.log(OAuth.AccessToken());
             setInterval(OAuth.FetchRefreshToken, 600000);
+            createSpotifyWindow();
         });
     });
 }
@@ -73,7 +74,6 @@ setInterval(function ()
 }, 1000);
 
 app.on('ready', createWindow);
-// app.on('ready', createSpotifyWindow);
 
 app.on('window-all-closed', () =>
 {
@@ -89,15 +89,11 @@ app.on('activate', () =>
     {
         createWindow()
     }
-    if (spotifyWindow === null)
-    {
-        createSpotifyWindow()
-    }
 })
 
 ipcMain.on("spotify-pauseplay", (event, arg) =>
 {
-    if (mainWindow !== null)
+    if (spotifyWindow !== null)
     {
         spotifyWindow.webContents.sendInputEvent({ keyCode: 'Space', type: 'keyDown' });
         spotifyWindow.webContents.sendInputEvent({ keyCode: 'Space', type: 'keyUp' });

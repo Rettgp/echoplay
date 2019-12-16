@@ -11,8 +11,6 @@
             <font-awesome-icon icon="microphone" size="3x" />
         </button>
         <recorded-list ref="recorded_list" id="recordedList"></recorded-list>
-        <iframe src="https://open.spotify.com/">
-        </iframe>
     </div>
 </template>
 
@@ -38,7 +36,8 @@ export default {
                 "https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png",
             playing_song: "Song",
             playing_artist: "Artist",
-            recording: false
+            recording: false,
+            playing_duration: 0
         };
     },
     methods: {
