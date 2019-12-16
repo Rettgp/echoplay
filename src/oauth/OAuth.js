@@ -1,19 +1,37 @@
 import { parse } from 'url'
 import axios from 'axios'
 import qs from 'qs'
+const express = require('express');
+const redirect_app = express();
+const server = require('http').Server(redirect_app);
+const port = 9080;
 
 const AUTHORIZATION_URL = 'https://accounts.spotify.com/authorize/'
 const TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const CLIENT_KEY = "140f445f97a3483c90a5023643bd1ab4";
 const CLIENT_SECRET = "b429f164f6b14f438e8e55d280450b29";
 let REDIRECT_URI = "";
+let RETURN_URI = "";
 let s_access_tokens = null;
 
 export default class OAuth
 {
-    static Authorize(browser, return_uri)
+    static Authorize(browser, return_uri, redirect_uri)
     {
-        REDIRECT_URI = return_uri + "/";
+        REDIRECT_URI = redirect_uri + "/";
+        RETURN_URI = return_uri;
+
+        if (process.env.NODE_ENV !== 'development')
+        {
+            server.listen(port, (err) =>
+            {
+                if (err)
+                {
+                    console.error(err);
+                    throw err;
+                }
+            });
+        }
         return new Promise((resolve, reject) =>
         {
             const urlParams = {
@@ -35,11 +53,17 @@ export default class OAuth
                 {
                     if (query.error)
                     {
+                        console.error(query.error);
                         reject(new Error(`There was an error: ${query.error}`))
                     } else if (query.code)
                     {
                         // Login is complete
                         browser.removeAllListeners('closed')
+
+                        if (process.env.NODE_ENV !== 'development')
+                        {
+                            server.close();
+                        }
 
                         // This is the authorization code we need to request tokens
                         resolve(query.code)
@@ -49,10 +73,10 @@ export default class OAuth
 
             browser.on('closed', () =>
             {
-                throw new Error('Auth window was closed by user')
             })
 
-            browser.webContents.on("did-redirect-navigation", (event, url) => {
+            browser.webContents.on("did-redirect-navigation", (event, url) =>
+            {
                 if (url.includes(REDIRECT_URI))
                 {
                     handleNavigation(url)
@@ -84,7 +108,7 @@ export default class OAuth
         return new Promise((resolve, reject) =>
         {
             let data = `${CLIENT_KEY}:${CLIENT_SECRET}`;
-            let buff = new Buffer(data);
+            let buff = new Buffer.from(data);
             let base64data = buff.toString('base64');
             axios.post(TOKEN_URL, qs.stringify({
                 code,
@@ -95,10 +119,12 @@ export default class OAuth
                     "Authorization": "Basic " + base64data,
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-            }).then(response => {
+            }).then(response =>
+            {
                 s_access_tokens = response.data;
                 resolve(response.data);
-            }).catch(error => {
+            }).catch(error =>
+            {
                 reject(new Error(`Token response failed: ${error}`));
             });
         });
@@ -115,7 +141,7 @@ export default class OAuth
         return new Promise((resolve, reject) =>
         {
             let data = `${CLIENT_KEY}:${CLIENT_SECRET}`;
-            let buff = new Buffer(data);
+            let buff = new Buffer.from(data);
             let base64data = buff.toString('base64');
             axios.post(TOKEN_URL, qs.stringify({
                 grant_type: 'refresh_token',
@@ -125,10 +151,12 @@ export default class OAuth
                     "Authorization": "Basic " + base64data,
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-            }).then(response => {
+            }).then(response =>
+            {
                 s_access_tokens.access_token = response.data.access_token;
                 resolve(response.data);
-            }).catch(error => {
+            }).catch(error =>
+            {
                 reject(new Error(`Token response failed: ${error}`));
             });
         });

@@ -15,6 +15,7 @@ Vue.component('font-awesome-icon', FontAwesomeIcon);
 // 3rd party components
 import VueSlider from 'vue-slider-component'
 import 'vue-slider-component/theme/default.css'
+Vue.component('VueSlider', VueSlider);
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'))
 Vue.config.productionTip = false
@@ -25,5 +26,3 @@ new Vue({
   router,
   template: '<App/>'
 }).$mount('#app')
-
-Vue.component('VueSlider', VueSlider);

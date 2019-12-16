@@ -15,7 +15,10 @@ let spotifyWindow = null;
 const winURL = process.env.NODE_ENV === 'development'
     ? `http://localhost:9080`
     : `file://${__dirname}/index.html`
-const redirectURL = `http://localhost:9080`;
+const redirect_uri = process.env.NODE_ENV === 'development'
+    ? `http://localhost:9080`
+    : `http://localhost:9080/oauth`;
+
 
 function createWindow()
 {
@@ -37,11 +40,14 @@ function createWindow()
         mainWindow = null
     })
 
-    OAuth.Authorize(mainWindow, redirectURL).then(code =>
+    OAuth.Authorize(mainWindow, winURL, redirect_uri).then(code =>
     {
         OAuth.FetchAccessTokens(code).then(tokens =>
         {
-            console.log(OAuth.AccessToken());
+            if (process.env.NODE_ENV !== "development")
+            {
+                mainWindow.loadURL(winURL);
+            }
             setInterval(OAuth.FetchRefreshToken, 600000);
             createSpotifyWindow();
         });
