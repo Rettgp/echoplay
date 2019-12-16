@@ -4,15 +4,13 @@
         <div class="card">
             <!-- Card image -->
             <div class="view">
-                <img class="card-img-top" v-bind:src="Image" alt="Card image cap" />
+                <img class="card-img-top" v-bind:src="image" alt="Card image cap" />
             </div>
 
             <!-- Card content -->
             <div class="card-body text-center">
-                <h5 class="h5 font-weight-bold">{{Artist}}</h5>
-                <p class="mb-0">{{Song}}</p>
-
-                <vue-slider :min="0" :max="Duration" :tooltip-formatter="progressFormatter" ref="slider"></vue-slider>
+                <h5 class="h5 font-weight-bold">{{artist}}</h5>
+                <p class="mb-0">{{song}}</p>
             </div>
         </div>
     </div>
@@ -20,45 +18,23 @@
 
 <script>
 export default {
-    props: ["image", "song", "artist", "duration"],
     computed: {
-        Image() {
-            return this.image;
-        },
-        Song() {
-            return this.song;
-        },
-        Artist() {
-            return this.artist;
-        },
         Duration() {
             return this.duration;
         }
     },
     methods: {
-        UpdateProgress(progress) {
-            this.progress = progress;
-            this.$nextTick(() => {
-                this.$refs.slider.setValue(this.progress);
-            });
+        Update(artist, song, image) {
+            this.artist = artist;
+            this.song = song;
+            this.image = image;
         }
     },
     data() {
         return {
-            electron: process.versions.electron,
-            node: process.versions.node,
-            path: this.$route.path,
-            platform: require("os").platform(),
-            vue: require("vue/package.json").version,
-            progress: 0,
-            progressFormatter: v => {
-                let seconds = (v/1000);
-                let minutes = Math.floor(seconds/60);
-                seconds = Math.floor(seconds - (minutes * 60));
-                seconds = (seconds < 10) ? ("0" + seconds) : seconds;
-                minutes = (minutes < 10) ? ("0" + minutes) : minutes;
-                return `${minutes}:${seconds}`
-            }
+            song: "",
+            artist: "",
+            image: "https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png",
         };
     }
 };
@@ -121,42 +97,5 @@ export default {
     border-top-left-radius: 10px;
     -webkit-border-top-right-radius: 10px;
     border-top-right-radius: 10px;
-}
-
-.card h5 a {
-    color: #0d47a1;
-}
-.card h5 a:hover {
-    color: #072f6b;
-}
-
-#pButton {
-    float: left;
-}
-
-#timeline {
-    width: 90%;
-    height: 2px;
-    margin-top: 20px;
-    margin-left: 10px;
-    float: left;
-    -webkit-border-radius: 15px;
-    border-radius: 15px;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-#pButton {
-    margin-top: 12px;
-    cursor: pointer;
-}
-
-#playhead {
-    width: 8px;
-    height: 8px;
-    -webkit-border-radius: 50%;
-    border-radius: 50%;
-    margin-top: -3px;
-    background: black;
-    cursor: pointer;
 }
 </style>

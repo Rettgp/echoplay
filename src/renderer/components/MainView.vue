@@ -1,12 +1,6 @@
 <template>
     <div id="wrapper">
-        <now-playing-card
-            ref="nowPlaying"
-            :image="playing_image"
-            :song="playing_song"
-            :artist="playing_artist"
-            :duration="playing_duration"
-        ></now-playing-card>
+        <now-playing-card ref="nowPlaying"></now-playing-card>
         <button v-on:click="ToggleRecord" type="button" class="btn btn-success btn-circle btn-xl">
             <font-awesome-icon icon="microphone" size="3x" />
         </button>
@@ -15,10 +9,12 @@
 </template>
 
 <script>
-import { BrowserView } from 'electron'
+import { BrowserView } from "electron";
 import NowPlayingCard from "./MainView/NowPlayingCard";
 import RecordedList from "./MainView/RecordedList";
 import OAuth from "oauth/OAuth";
+import { Lame } from "node-lame";
+var PATH = require("path");
 var SpotifyWebApi = require("spotify-web-api-node");
 var portAudio = require("naudiodon");
 const Fs = require("fs");
@@ -32,12 +28,9 @@ export default {
     components: { NowPlayingCard, RecordedList },
     data() {
         return {
-            playing_image:
-                "https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png",
-            playing_song: "Song",
-            playing_artist: "Artist",
-            recording: false,
-            playing_duration: 0
+            playing_song: null,
+            playing_artist: null,
+            recording: false
         };
     },
     methods: {
@@ -50,14 +43,13 @@ export default {
                     data => {
                         // Output items
                         if (data.body.item !== undefined) {
-                            this.playing_image =
-                                data.body.item.album.images[1].url;
                             this.playing_song = data.body.item.name;
                             this.playing_artist =
                                 data.body.item.artists[0].name;
-                            this.playing_duration = data.body.item.duration_ms;
-                            this.$refs.nowPlaying.UpdateProgress(
-                                data.body.progress_ms
+                            this.$refs.nowPlaying.Update(
+                                this.playing_artist,
+                                this.playing_song,
+                                data.body.item.album.images[1].url
                             );
                         }
                     },
@@ -84,10 +76,27 @@ export default {
                 AudioIo.start();
 
                 this.$electron.ipcRenderer.send("spotify-pauseplay");
-                this.$refs.recorded_list.AddSong(this.playing_artist, this.playing_song);
             } else {
                 this.$electron.ipcRenderer.send("spotify-pauseplay");
                 AudioIo.quit();
+
+                this.$refs.recorded_list.AddSong(
+                    this.playing_artist,
+                    this.playing_song
+                );
+
+                // TODO (Garrett): Fix output path
+                let Encoder = new Lame({
+                    output: `audio-output/${this.playing_artist}-${this.playing_song}.mp3`,
+                    bitrate: 192
+                }, PATH.join(process.resourcesPath, "lame"));
+                Encoder.setFile("rawAudio.raw");
+                Encoder.encode()
+                    .then(() => {})
+                    .catch(error => {
+                        console.error("Encoding Error!");
+                        throw new Error(error);
+                    });
             }
         }
     },
@@ -118,11 +127,10 @@ export default {
 }
 
 #recordedList {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  width: 8em;
-  margin-top: -2.5em;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 8em;
 }
 
 .btn-circle.btn-xl {

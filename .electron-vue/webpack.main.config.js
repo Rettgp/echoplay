@@ -5,6 +5,7 @@ process.env.BABEL_ENV = 'main'
 const path = require('path')
 const { dependencies } = require('../package.json')
 const webpack = require('webpack')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 const MinifyPlugin = require("babel-minify-webpack-plugin")
 
@@ -38,7 +39,13 @@ let mainConfig = {
     path: path.join(__dirname, '../dist/electron')
   },
   plugins: [
-    new webpack.NoEmitOnErrorsPlugin()
+    new webpack.NoEmitOnErrorsPlugin(),
+    new CopyWebpackPlugin([
+      {
+        from: path.join(__dirname, '../lame'),
+        to: path.join(__dirname, '../dist/electron')
+      }
+    ])
   ],
   resolve: {
     extensions: ['.js', '.json', '.node']
@@ -49,7 +56,8 @@ let mainConfig = {
 /**
  * Adjust mainConfig for development settings
  */
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production')
+{
   mainConfig.plugins.push(
     new webpack.DefinePlugin({
       '__static': `"${path.join(__dirname, '../static').replace(/\\/g, '\\\\')}"`
@@ -60,7 +68,8 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Adjust mainConfig for production settings
  */
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production')
+{
   mainConfig.plugins.push(
     new MinifyPlugin(),
     new webpack.DefinePlugin({
