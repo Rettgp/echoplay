@@ -52,7 +52,7 @@
         "electronDownload": {
             "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
         },
-        "electronVersion": "7.1.4-wvvmp"
+        "electronVersion": "7.1.2-wvvmp"
     },
     "dependencies": {
         "@fortawesome/fontawesome-svg-core": "^1.2.26",
@@ -101,7 +101,7 @@
         "css-loader": "^3.3.2",
         "del": "^5.1.0",
         "devtron": "^1.4.0",
-        "electron": "https://github.com/castlabs/electron-releases#v7.1.4-wvvmp",
+        "electron": "https://github.com/castlabs/electron-releases#v7.1.2-wvvmp",
         "electron-builder": "^21.2.0",
         "electron-debug": "^3.0.1",
         "electron-devtools-installer": "^2.2.4",
