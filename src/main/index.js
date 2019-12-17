@@ -29,9 +29,11 @@ function createWindow()
         webPreferences: {
             nodeIntegration: true
         },
-        height: 563,
+        x: 0,
+        y: 0,
+        height: 500,
         useContentSize: true,
-        width: 1000
+        width: 750
     })
 
 
@@ -66,9 +68,11 @@ function createSpotifyWindow()
         webPreferences: {
             plugins: true
         },
-        height: 563,
+        x: 750,
+        y: 0,
+        height: 500,
         useContentSize: true,
-        width: 1000
+        width: 750
     })
     spotifyWindow.loadURL("https://open.spotify.com/")
     spotifyWindow.on('closed', () =>

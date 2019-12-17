@@ -1,8 +1,17 @@
 <template>
     <div id="wrapper">
-        <div class="alert alert-danger" role="alert" v-if="no_lame">EchoPlay cannot find LAME. Please install LAME on your system.</div>
+        <div
+            class="alert alert-danger"
+            role="alert"
+            v-if="no_lame"
+        >EchoPlay cannot find LAME. Please install LAME on your system.</div>
         <now-playing-card id="playingCard" ref="nowPlaying"></now-playing-card>
-        <button id="recordButton" v-on:click="ToggleRecord" type="button" class="btn btn-success btn-circle btn-xl">
+        <button
+            id="recordButton"
+            v-on:click="ToggleRecord(false)"
+            type="button"
+            class="btn btn-success btn-circle btn-xl"
+        >
             <font-awesome-icon icon="microphone" size="3x" />
         </button>
         <recorded-list ref="recorded_list" id="recordedList"></recorded-list>
@@ -33,7 +42,8 @@ export default {
             playing_song: null,
             playing_artist: null,
             recording: false,
-            no_lame: !HASBIN.sync('lame')
+            no_lame: !HASBIN.sync("lame"),
+            is_ad: false
         };
     },
     methods: {
@@ -46,6 +56,18 @@ export default {
                     data => {
                         // Output items
                         if (data.body.item !== undefined) {
+                            this.is_ad = data.body.currently_playing_type === "ad";
+                            if (this.is_ad)
+                            {
+                                return;
+                            }
+
+                            if (
+                                this.recording &&
+                                data.body.item.name !== this.playing_song
+                            ) {
+                                this.ToggleRecord(true);
+                            }
                             this.playing_song = data.body.item.name;
                             this.playing_artist =
                                 data.body.item.artists[0].name;
@@ -62,10 +84,15 @@ export default {
                 );
             }
         },
-        ToggleRecord() {
-            if (!HASBIN.sync("lame"))
-            {
+        ToggleRecord(end_of_song) {
+            if (!HASBIN.sync("lame")) {
                 this.no_lame = true;
+                return;
+            }
+            
+            if (this.is_ad)
+            {
+                this.recording = false;
                 return;
             }
 
@@ -102,7 +129,11 @@ export default {
                 });
                 Encoder.setFile("rawAudio.raw");
                 Encoder.encode()
-                    .then(() => {})
+                    .then(() => {
+                        if (end_of_song) {
+                            this.ToggleRecord(false);
+                        }
+                    })
                     .catch(error => {
                         console.error("Encoding Error!");
                         throw new Error(error);
@@ -127,17 +158,17 @@ export default {
 @import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro");
 
 #wrapper {
-    background:#23272a;
+    background: #23272a;
 
-   width: 100%;
-   height: 100%;
-   margin: 0;
-   padding: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 .alert {
     position: fixed;
-    left:0;
+    left: 0;
     top: 0;
 }
 
