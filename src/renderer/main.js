@@ -6,9 +6,10 @@ import router from './router'
 // style
 import "bootstrap/dist/css/bootstrap.css";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faMicrophone } from '@fortawesome/free-solid-svg-icons';
+import { faMicrophone, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 library.add(faMicrophone);
+library.add(faCheck);
 Vue.component('font-awesome-icon', FontAwesomeIcon);
 
 

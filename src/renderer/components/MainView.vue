@@ -1,7 +1,8 @@
 <template>
     <div id="wrapper">
-        <now-playing-card ref="nowPlaying"></now-playing-card>
-        <button v-on:click="ToggleRecord" type="button" class="btn btn-success btn-circle btn-xl">
+        <div class="alert alert-danger" role="alert" v-if="no_lame">EchoPlay cannot find LAME. Please install LAME on your system.</div>
+        <now-playing-card id="playingCard" ref="nowPlaying"></now-playing-card>
+        <button id="recordButton" v-on:click="ToggleRecord" type="button" class="btn btn-success btn-circle btn-xl">
             <font-awesome-icon icon="microphone" size="3x" />
         </button>
         <recorded-list ref="recorded_list" id="recordedList"></recorded-list>
@@ -17,6 +18,7 @@ import { Lame } from "node-lame";
 var PATH = require("path");
 var SpotifyWebApi = require("spotify-web-api-node");
 var portAudio = require("naudiodon");
+var HASBIN = require("hasbin");
 const Fs = require("fs");
 var spotifyApi = new SpotifyWebApi();
 
@@ -30,7 +32,8 @@ export default {
         return {
             playing_song: null,
             playing_artist: null,
-            recording: false
+            recording: false,
+            no_lame: !HASBIN.sync('lame')
         };
     },
     methods: {
@@ -60,6 +63,13 @@ export default {
             }
         },
         ToggleRecord() {
+            if (!HASBIN.sync("lame"))
+            {
+                this.no_lame = true;
+                return;
+            }
+
+            this.no_lame = false;
             this.recording = !this.recording;
             if (this.recording) {
                 AudioIo = new portAudio.AudioIO({
@@ -89,7 +99,7 @@ export default {
                 let Encoder = new Lame({
                     output: `audio-output/${this.playing_artist}-${this.playing_song}.mp3`,
                     bitrate: 192
-                }, PATH.join(process.resourcesPath, "lame"));
+                });
                 Encoder.setFile("rawAudio.raw");
                 Encoder.encode()
                     .then(() => {})
@@ -117,20 +127,40 @@ export default {
 @import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro");
 
 #wrapper {
-    background: radial-gradient(
-        ellipse at top left,
-        rgba(255, 255, 255, 1) 40%,
-        rgba(229, 229, 229, 0.9) 100%
-    );
-    height: 100%;
-    width: 100%;
+    background:#23272a;
+
+   width: 100%;
+   height: 100%;
+   margin: 0;
+   padding: 0;
+}
+
+.alert {
+    position: fixed;
+    left:0;
+    top: 0;
 }
 
 #recordedList {
+    display: inline-block;
+    vertical-align: top;
+    width: 44%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+#playingCard {
+    display: inline-block;
+    vertical-align: top;
+    width: 55%;
+    height: 100%;
+}
+
+#recordButton {
     position: fixed;
     right: 0;
-    top: 0;
-    width: 8em;
+    bottom: 0;
+    z-index: 100;
 }
 
 .btn-circle.btn-xl {
