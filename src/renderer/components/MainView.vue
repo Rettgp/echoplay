@@ -8,7 +8,7 @@
         <now-playing-card id="playingCard" ref="nowPlaying"></now-playing-card>
         <button
             id="recordButton"
-            v-on:click="ToggleRecord(false)"
+            v-on:click="ToggleRecord"
             type="button"
             class="btn btn-success btn-circle btn-xl"
         >
@@ -43,62 +43,16 @@ export default {
             playing_artist: null,
             recording: false,
             no_lame: !HASBIN.sync("lame"),
-            is_ad: false
+            is_ad: false,
+            running: false
         };
     },
     methods: {
         open(link) {
             this.$electron.shell.openExternal(link);
         },
-        UpdateSongData() {
-            if (access_token !== null) {
-                spotifyApi.getMyCurrentPlaybackState({}).then(
-                    data => {
-                        // Output items
-                        if (data.body.item !== undefined) {
-                            this.is_ad = data.body.currently_playing_type === "ad";
-                            if (this.is_ad)
-                            {
-                                return;
-                            }
-
-                            if (
-                                this.recording &&
-                                data.body.item.name !== this.playing_song
-                            ) {
-                                this.ToggleRecord(true);
-                            }
-                            this.playing_song = data.body.item.name;
-                            this.playing_artist =
-                                data.body.item.artists[0].name;
-                            this.$refs.nowPlaying.Update(
-                                this.playing_artist,
-                                this.playing_song,
-                                data.body.item.album.images[1].url
-                            );
-                        }
-                    },
-                    function(err) {
-                        console.log("Something went wrong!", err);
-                    }
-                );
-            }
-        },
-        ToggleRecord(end_of_song) {
-            if (!HASBIN.sync("lame")) {
-                this.no_lame = true;
-                return;
-            }
-            
-            if (this.is_ad)
-            {
-                this.recording = false;
-                return;
-            }
-
-            this.no_lame = false;
-            this.recording = !this.recording;
-            if (this.recording) {
+        StartRecording() {
+            if (!this.recording && !this.is_ad) {
                 AudioIo = new portAudio.AudioIO({
                     inOptions: {
                         channelCount: 2,
@@ -111,34 +65,104 @@ export default {
                 let AudioWriteStream = Fs.createWriteStream("rawAudio.raw");
                 AudioIo.pipe(AudioWriteStream);
                 AudioIo.start();
-
-                this.$electron.ipcRenderer.send("spotify-pauseplay");
-            } else {
-                this.$electron.ipcRenderer.send("spotify-pauseplay");
+                this.recording = true;
+            }
+        },
+        StopRecording() {
+            if (this.recording) {
                 AudioIo.quit();
-
-                this.$refs.recorded_list.AddSong(
-                    this.playing_artist,
-                    this.playing_song
-                );
-
+                this.recording = false;
+            }
+        },
+        EncodeLastSong(artist, song) {
+            return new Promise((resolve, reject) => {
+                if (!Fs.existsSync("rawAudio.raw")) {
+                    resolve();
+                }
                 // TODO (Garrett): Fix output path
                 let Encoder = new Lame({
-                    output: `audio-output/${this.playing_artist}-${this.playing_song}.mp3`,
+                    output: `audio-output/${artist}-${song}.mp3`,
                     bitrate: 192
                 });
                 Encoder.setFile("rawAudio.raw");
                 Encoder.encode()
                     .then(() => {
-                        if (end_of_song) {
-                            this.ToggleRecord(false);
-                        }
+                        this.$refs.recorded_list.AddSong(artist, song);
+                        Fs.unlinkSync("rawAudio.raw");
+                        resolve();
                     })
                     .catch(error => {
                         console.error("Encoding Error!");
                         throw new Error(error);
                     });
+            });
+        },
+        ToggleSpotify() {
+            this.$electron.ipcRenderer.send("spotify-pauseplay");
+        },
+        UpdateSongData() {
+            if (access_token !== null) {
+                spotifyApi.getMyCurrentPlaybackState({}).then(
+                    data => {
+                        // Output items
+                        if (data.body.item !== undefined) {
+                            this.is_ad =
+                                data.body.currently_playing_type === "ad";
+                            let song_name = this.is_ad
+                                ? "ad"
+                                : data.body.item.name;
+                            let artist = this.is_ad
+                                ? "ad"
+                                : data.body.item.artists[0].name;
+                            let album = this.is_ad
+                                ? "https://developer.spotify.com/assets/branding-guidelines/icon3@2x.png"
+                                : data.body.item.album.images[1].url;
+
+                            if (
+                                this.running &&
+                                this.playing_song !== null &&
+                                song_name !== this.playing_song
+                            ) {
+                                this.StopRecording();
+                                this.ToggleSpotify();
+                                this.EncodeLastSong(
+                                    this.playing_artist,
+                                    this.playing_song
+                                ).then(() => {
+                                    this.StartRecording();
+                                    this.ToggleSpotify();
+                                });
+                            }
+
+                            this.playing_song = song_name;
+                            this.playing_artist = artist;
+                            this.$refs.nowPlaying.Update(
+                                this.playing_artist,
+                                this.playing_song,
+                                album
+                            );
+                        }
+                    },
+                    function(err) {
+                        console.log("Something went wrong!", err);
+                    }
+                );
             }
+        },
+        ToggleRecord() {
+            if (!HASBIN.sync("lame")) {
+                this.no_lame = true;
+                return;
+            }
+
+            this.no_lame = false;
+            this.running = !this.running;
+            if (!this.recording && !this.is_ad) {
+                this.StartRecording();
+            } else {
+                this.StopRecording();
+            }
+            this.ToggleSpotify();
         }
     },
     mounted: function() {
@@ -146,7 +170,7 @@ export default {
             access_token = token;
             spotifyApi.setAccessToken(access_token);
         });
-        setInterval(this.UpdateSongData, 1000);
+        setInterval(this.UpdateSongData, 500);
     },
     beforeDestroy: function() {
         AudioIo.quit();
