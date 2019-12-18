@@ -30,6 +30,8 @@ var portAudio = require("naudiodon");
 var HASBIN = require("hasbin");
 const Fs = require("fs");
 var spotifyApi = new SpotifyWebApi();
+console.log(portAudio.getDevices())
+console.log(portAudio.getHostAPIs())
 
 let access_token = null;
 let AudioIo = null;

@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import OAuth from "oauth/OAuth"
+let FS = require("fs");
+let Path = require("path");
 
 /**
  * Set `__static` path to static files in production
@@ -7,7 +9,23 @@ import OAuth from "oauth/OAuth"
  */
 if (process.env.NODE_ENV !== 'development')
 {
-    global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
+    global.__static = Path.join(__dirname, '/static').replace(/\\/g, '\\\\')
+}
+else
+{
+    // Copy Lame resource to resources for DEV environment
+    FS.copyFile(Path.join(__dirname, "../../lame.exe"), Path.join(process.resourcesPath, "lame.exe"), (err) =>
+    {
+        if (err) {
+            console.error("Unable to copy resource!!");
+            console.log(err);
+        }
+    });
+}
+
+if (process.platform === "win32")
+{
+    process.env.PATH += ";" + process.resourcesPath;
 }
 
 let mainWindow = null;
@@ -115,23 +133,3 @@ ipcMain.on("spotify-pauseplay", (event, arg) =>
         spotifyWindow.webContents.sendInputEvent({ keyCode: 'Space', type: 'keyUp' });
     }
 });
-
-/**
- * Auto Updater
- *
- * Uncomment the following code below and install `electron-updater` to
- * support auto updating. Code Signing with a valid certificate is required.
- * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-electron-builder.html#auto-updating
- */
-
-/*
-import { autoUpdater } from 'electron-updater'
-
-autoUpdater.on('update-downloaded', () => {
-  autoUpdater.quitAndInstall()
-})
-
-app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
-})
- */
